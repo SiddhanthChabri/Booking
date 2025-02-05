@@ -4,7 +4,7 @@ function Navbar() {
   return (
     <div className="navbar">
       <div className="navContainer">
-        <span className="logo">Lamabooking</span>
+        <span className="logo">Booking.com Clone</span>
         <div className="navItems">
           <button className="navButton">Register</button>
           <button className="navButton">Login</button>
