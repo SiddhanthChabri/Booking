@@ -1,0 +1,73 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Hotels {
+  id            Int      @id @default(autoincrement())
+  name          String   @db.VarChar(255)
+  type          String   @db.VarChar(255)
+  city          String   @db.VarChar(255)
+  address       String   @db.VarChar(255)
+  distance      String   @db.VarChar(255)
+  photos        String[] // Changed from Json to String[]
+  title         String?  @db.VarChar(255)
+  desc          String?  @db.VarChar(255)
+  rating        Int?
+  cheapestPrice Int
+  featured      Boolean? @default(false)
+  createdAt     DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt     DateTime @updatedAt @db.Timestamptz(6)
+  rooms         Rooms[]  // Relation to Rooms model
+}
+
+model Rooms {
+  id          Int           @id @default(autoincrement())
+  title       String        @db.VarChar(255)
+  price       Int
+  maxPeople   Int
+  desc        String
+  roomNumbers RoomNumber[]  // Relation to RoomNumber model
+  createdAt   DateTime      @default(now()) @db.Timestamptz(6)
+  updatedAt   DateTime      @updatedAt @db.Timestamptz(6)
+  hotelId     Int
+  hotel       Hotels        @relation(fields: [hotelId], references: [id])
+  bookings    Bookings[]    // Relation to Bookings model
+}
+
+model RoomNumber {
+  id        Int      @id @default(autoincrement())
+  number    String   @unique
+  roomId    Int
+  room      Rooms    @relation(fields: [roomId], references: [id])
+  // You could add availability or booking information here
+}
+
+model Users {
+  id        Int       @id @default(autoincrement())
+  username  String    @unique @db.VarChar(255)
+  email     String    @unique @db.VarChar(255)
+  password  String    @db.VarChar(255)
+  isAdmin   Boolean?  @default(false)
+  createdAt DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(6)
+  bookings  Bookings[]
+}
+
+model Bookings {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  user      Users    @relation(fields: [userId], references: [id])
+  roomId    Int
+  room      Rooms    @relation(fields: [roomId], references: [id])
+  startDate DateTime
+  endDate   DateTime
+  price     Int
+  status    String   @default("pending")
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @db.Timestamptz(6)
+}

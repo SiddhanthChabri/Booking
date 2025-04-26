@@ -1,19 +1,9 @@
 import express from "express";
-import { dbInit, UserModel } from "../postgres/postgres.js";
+import prisma from "../postgres/postgres.js";
 import { createUser, deleteUser, getUsers, updateUser } from "../controller/userController.js";
 import { verifyToken, verifyUser, verifyAdmin } from "../utils/verifyToken.js";
 
 const router = express.Router();
-
-// Initialize the database model once globally
-(async () => {
-  try {
-    await dbInit();
-    console.log("Database initialized successfully.");
-  } catch (error) {
-    console.error("Database initialization failed:", error);
-  }
-})();
 
 // AUTH CHECKS
 router.get("/checkauthentication", verifyToken, (req, res) => {

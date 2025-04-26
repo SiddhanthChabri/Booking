@@ -1,64 +1,139 @@
-import { dbInit } from "../postgres/postgres.js";
+// users.js
+import prisma from "../postgres/postgres.js";  // Import the Prisma client
 
-const userModelInit = async () => {
-  const { UserModel } = await dbInit(); // Ensure the UserModel is initialized
-  return UserModel;
-};
-
+// Create user
 export const createUser = async (req, res, next) => {
   try {
-    const UserModel = await userModelInit();
-    const newHotel = await UserModel.create(req.body);
-    res.status(200).json(newHotel);
+    // Don't expose password in response
+    const newUser = await prisma.users.create({
+      data: req.body,
+    });
+    
+    // Remove password from response
+    const { password, ...userWithoutPassword } = newUser;
+    res.status(201).json(userWithoutPassword); // Use 201 for resource creation
   } catch (error) {
+    if (error.code === 'P2002') {
+      // Handle unique constraint violation
+      return res.status(409).json({ 
+        error: "Username or email already exists" 
+      });
+    }
     next(error);
   }
 };
 
+// Get all users
 export const getUsers = async (req, res, next) => {
   try {
-    const UserModel = await userModelInit();
-    const allUsers = await UserModel.findAll();
-    if (!allUsers || allUsers.length === 0) {
-      return res.status(404).json({ error: "No hotels found" });
-    }
+    // Don't expose passwords in response
+    const allUsers = await prisma.users.findMany({
+      select: {
+        id: true,
+        username: true,
+        email: true,
+        isAdmin: true,
+        createdAt: true,
+        updatedAt: true
+      }
+    });
+    
     res.status(200).json(allUsers);
   } catch (error) {
     next(error);
   }
 };
 
-export const updateUser = async (req, res, next) => {
+// Get user by ID
+export const getUserById = async (req, res, next) => {
   try {
-    const UserModel = await userModelInit();
-    const UserId = req.params.id;
-
-    const [updatedRows, updatedUsers] = await UserModel.update(req.body, {
-      where: { id: UserId },
-      returning: true,
+    const userId = parseInt(req.params.id);
+    const user = await prisma.users.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        username: true,
+        email: true,
+        isAdmin: true,
+        createdAt: true,
+        updatedAt: true
+      }
     });
-
-    if (updatedRows === 0) {
+    
+    if (!user) {
       return res.status(404).json({ error: "User not found" });
     }
-    res.status(200).json(updatedUsers[0]);
+    
+    res.status(200).json(user);
   } catch (error) {
     next(error);
   }
 };
 
+// Update user
+export const updateUser = async (req, res, next) => {
+  try {
+    const userId = parseInt(req.params.id);
+    
+    // Check if user exists
+    const userExists = await prisma.users.findUnique({
+      where: { id: userId }
+    });
+    
+    if (!userExists) {
+      return res.status(404).json({ error: "User not found" });
+    }
+    
+    // Hash password if it's being updated
+    let data = { ...req.body };
+    if (data.password) {
+      const bcrypt = await import('bcrypt');
+      const salt = await bcrypt.genSalt(10);
+      data.password = await bcrypt.hash(data.password, salt);
+    }
+    
+    const updatedUser = await prisma.users.update({
+      where: { id: userId },
+      data,
+      select: {
+        id: true,
+        username: true,
+        email: true,
+        isAdmin: true,
+        createdAt: true,
+        updatedAt: true
+      }
+    });
+    
+    res.status(200).json(updatedUser);
+  } catch (error) {
+    if (error.code === 'P2002') {
+      return res.status(409).json({ 
+        error: "Username or email already exists" 
+      });
+    }
+    next(error);
+  }
+};
+
+// Delete user
 export const deleteUser = async (req, res, next) => {
   try {
-    const UserModel = await userModelInit();
-    const userId = req.params.id;
+    const userId = parseInt(req.params.id);
+    
+    const user = await prisma.users.findUnique({
+      where: { id: userId },
+    });
 
-    const user = await UserModel.findOne({ where: { id: userId } });
     if (!user) {
       return res.status(404).json({ error: "User not found" });
     }
 
-    await user.destroy();
-    res.status(200).json({ message: "Deleted Successfully" });
+    await prisma.users.delete({
+      where: { id: userId },
+    });
+
+    res.status(200).json({ message: "User deleted successfully" });
   } catch (error) {
     next(error);
   }

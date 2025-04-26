@@ -1,43 +1,81 @@
-import { dbInit } from "../postgres/postgres.js";
-import bcrypt from "bcrypt"
+import prisma from "../postgres/postgres.js";
+import bcrypt from "bcrypt";
 import { createError } from "../utils/error.js"; 
-import jwt from "jsonwebtoken"
-import dotenv from "dotenv"
+import jwt from "jsonwebtoken";
+import dotenv from "dotenv";
 
 dotenv.config();
 
 export const register = async (req, res, next) => {
   try {
-
-    const salt = bcrypt.genSaltSync(10);
-    const hash = bcrypt.hashSync(req.body.password, salt)
-    const { UserModel } = await dbInit(); // Ensure models are initialized
-    const newUser = await UserModel.create({
-      username: req.body.username,
-      email: req.body.email,
-      password: hash,
+    const { username, email, password } = req.body;
+    
+    // Check if user already exists
+    const existingUser = await prisma.users.findFirst({
+      where: {
+        OR: [
+          { username },
+          { email }
+        ]
+      }
     });
-    res.status(200).send("User created successfully.");
+    
+    if (existingUser) {
+      return next(createError(409, "Username or email already exists"));
+    }
+    
+    // Hash password
+    const salt = bcrypt.genSaltSync(10);
+    const hash = bcrypt.hashSync(password, salt);
+
+    // Create user
+    const newUser = await prisma.users.create({
+      data: {
+        username,
+        email,
+        password: hash,
+      },
+    });
+
+    res.status(201).json({ message: "User created successfully" });
   } catch (error) {
     next(error);
   }
 };
+
 export const login = async (req, res, next) => {
   try {
-    const { UserModel } = await dbInit();
-    const user = await UserModel.findOne({where: {username: req.body.username} });
-    if(!user) return next(createError(404, "User not found"));
+    const { username, password } = req.body;
+    
+    // Find user
+    const user = await prisma.users.findUnique({
+      where: { username }
+    });
 
-    const token = jwt.sign({id: user.id, isAdmin: user.isAdmin}, process.env.JWT)
+    if (!user) return next(createError(404, "User not found"));
 
-    const isPasswordCorrect = await bcrypt.compare(req.body.password, user.password);
-    if(!isPasswordCorrect) return next(createError(400, "Wrong password or username"))
-        const {password, isAdmin, ...otherDetails} = user.toJSON();
-    res.cookie("access_token", token, {
+    // Check password
+    const isPasswordCorrect = await bcrypt.compare(password, user.password);
+    if (!isPasswordCorrect) return next(createError(400, "Wrong password or username"));
+
+    // Generate token
+    const token = jwt.sign(
+      { id: user.id, isAdmin: user.isAdmin },
+      process.env.JWT,
+      { expiresIn: '1d' } // Add token expiration
+    );
+
+    // Remove password from response
+    const { password: _, ...userDetails } = user;
+
+    res
+      .cookie("access_token", token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
-    })
-    .status(200).json({...otherDetails});
+        maxAge: 24 * 60 * 60 * 1000 // 1 day
+      })
+      .status(200)
+      .json(userDetails); // Include all user details (including isAdmin)
   } catch (error) {
     next(error);
   }
