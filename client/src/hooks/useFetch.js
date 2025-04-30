@@ -1,40 +1,49 @@
 import { useEffect, useState, useCallback } from 'react';
 import axios from 'axios';
 
+/**
+ * Custom hook for fetching data from API endpoints
+ * @param {string} url - The API endpoint to fetch data from
+ */
 const useFetch = (url) => {
+    // Initialize data as empty array, not null
     const [data, setData] = useState([]);
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
     const fetchData = useCallback(async () => {
         setLoading(true);
         try {
-            const res = await axios.get(url);
-            setData(res.data);
-            setError(null); // Reset error on success
+            // You may need to adjust the baseURL to match your API setup
+            const baseURL = 'http://localhost:8800/api'; 
+            const finalUrl = url.startsWith('http') ? url : `${baseURL}${url}`;
+            
+            const res = await axios.get(finalUrl);
+            
+            // Make sure we have data and it's in the expected format
+            if (res.data) {
+                setData(res.data);
+            } else {
+                // If response doesn't contain data, set an empty array
+                setData([]);
+            }
         } catch (err) {
-            setError(err.response?.data?.message || err.message || 'Unknown error');
-            setData([]); // Clear data on error
+            console.error(`Error fetching data from ${url}:`, err);
+            setError(err);
+            // On error, ensure data is an empty array, not null
+            setData([]);
         } finally {
             setLoading(false);
         }
     }, [url]);
 
     useEffect(() => {
-        let isMounted = true;
-        
-        if (isMounted) {
-            fetchData();
-        }
-
-        return () => {
-            isMounted = false; // Cleanup to prevent state updates after unmount
-        };
+        fetchData();
     }, [fetchData]);
 
-    const reFetch = useCallback(async () => {
+    const reFetch = async () => {
         await fetchData();
-    }, [fetchData]);
+    };
 
     return { data, loading, error, reFetch };
 };
