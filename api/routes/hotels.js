@@ -1,6 +1,6 @@
 import express from "express";
 import prisma from "../postgres/postgres.js";
-import { countByCity, createHotel, deleteHotel, getHotels, updateHotel } from "../controller/hotelController.js";
+import { countByCity, countByType, createHotel, deleteHotel, getHotels, updateHotel } from "../controller/hotelController.js";
 import {verifyAdmin} from "../utils/verifyToken.js"
 
 const router = express.Router();
@@ -19,6 +19,6 @@ router.delete("/:id", verifyAdmin, deleteHotel);
 
 router.get("/", getHotels);
 router.get("/countByCity", countByCity);
-router.get("/countByType", getHotels);
+router.get("/countByType", countByType);
 
 export default router;

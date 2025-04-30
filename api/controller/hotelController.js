@@ -23,19 +23,20 @@ export const createHotel = async (req, res, next) => {
   }
 };
 
-
 export const getHotels = async (req, res, next) => {
   try {
-    const allHotels = await prisma.hotels.findMany();
-    
-    // Format JSON fields for all hotels
-    const formattedHotels = allHotels.map(hotel => ({
-      ...hotel,
-      photos: JSON.parse(hotel.photos || "[]"),
-      rooms: JSON.parse(hotel.rooms || "[]")
-    }));
-    
-    res.status(200).json(formattedHotels);
+    const { limit, featured } = req.query;
+
+    const whereClause = featured !== undefined ? { featured: featured === "true" } : {};
+    const take = limit ? parseInt(limit) : undefined;
+
+    const allHotels = await prisma.hotels.findMany({
+      where: whereClause,
+      take,
+      include: { rooms: true },
+    });
+
+    res.status(200).json(allHotels);
   } catch (error) {
     next(error);
   }
@@ -112,6 +113,26 @@ export const countByCity = async (req, res, next) => {
     }));
     
     res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const countByType = async (req, res, next) => {
+  try {
+    const hotelCount = await prisma.hotels.count({ where: { type: "hotel" } });
+    const apartmentCount = await prisma.hotels.count({ where: { type: "apartment" } });
+    const resortCount = await prisma.hotels.count({ where: { type: "resort" } });
+    const villaCount = await prisma.hotels.count({ where: { type: "villa" } });
+    const cabinCount = await prisma.hotels.count({ where: { type: "cabin" } });
+
+    res.status(200).json([
+      { type: "hotel", count: hotelCount },
+      { type: "apartment", count: apartmentCount },
+      { type: "resort", count: resortCount },
+      { type: "villa", count: villaCount },
+      { type: "cabin", count: cabinCount },
+    ]);
   } catch (error) {
     next(error);
   }
