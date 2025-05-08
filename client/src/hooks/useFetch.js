@@ -15,7 +15,7 @@ const useFetch = (url) => {
         setLoading(true);
         try {
             // You may need to adjust the baseURL to match your API setup
-            const baseURL = 'http://localhost:8800/api'; 
+            const baseURL = 'http://localhost:8000/api'; 
             const finalUrl = url.startsWith('http') ? url : `${baseURL}${url}`;
             
             const res = await axios.get(finalUrl);

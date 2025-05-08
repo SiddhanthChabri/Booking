@@ -25,22 +25,42 @@ export const createHotel = async (req, res, next) => {
 
 export const getHotels = async (req, res, next) => {
   try {
-    const { limit, featured } = req.query;
+    const { city, min, max, limit, featured } = req.query;
+    console.log(req.query)
 
-    const whereClause = featured !== undefined ? { featured: featured === "true" } : {};
-    const take = limit ? parseInt(limit) : undefined;
+    const filters = {
+      ...(city && {
+        city: {
+          equals: city.trim(),
+          mode: "insensitive",
+        },
+      }),
+      ...(featured !== undefined && { featured: featured === "true" }),
+    };
 
-    const allHotels = await prisma.hotels.findMany({
-      where: whereClause,
-      take,
+    const parsedMin = parseInt(min);
+    const parsedMax = parseInt(max);
+
+    if (!isNaN(parsedMin) || !isNaN(parsedMax)) {
+      filters.cheapestPrice = {
+        ...(parsedMin >= 0 && { gte: parsedMin }),
+        ...(parsedMax >= 0 && { lte: parsedMax }),
+      };
+    }
+
+    const hotels = await prisma.hotels.findMany({
+      where: filters,
+      take: limit ? parseInt(limit) : undefined,
       include: { rooms: true },
     });
 
-    res.status(200).json(allHotels);
-  } catch (error) {
-    next(error);
+    res.status(200).json(hotels);
+  } catch (err) {
+    next(err);
   }
 };
+
+
 
 export const updateHotel = async (req, res, next) => {
   try {

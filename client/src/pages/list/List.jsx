@@ -1,20 +1,43 @@
 import "./list.css";
 import Navbar from "../../components/navbar/Navbar";
 import Header from "../../components/header/Header";
-import { useState } from "react";
 import { useLocation } from "react-router-dom";
-import { DateRange } from "react-date-range";
-
+import { useState, useEffect } from "react";
 import { format } from "date-fns";
+import { DateRange } from "react-date-range";
 import SearchItem from "../../components/searchItem/SearchItem";
+import useFetch from "../../hooks/useFetch";
 
-function List() {
+const List = () => {
   const location = useLocation();
 
-  const [destination, setDestination] = useState(location.state.destination);
-  const [date, setDate] = useState(location.state.date);
-  const [openDate, setOpenDate] = useState(location.state.date);
-  const [options, setoptions] = useState(location.state.options);
+  const [destination, setDestination] = useState(location.state?.destination || "");
+  const [dates, setDates] = useState(location.state?.dates || [
+    {
+      startDate: new Date(),
+      endDate: new Date(),
+      key: "selection",
+    },
+  ]);
+  const [openDate, setOpenDate] = useState(false);
+  const [options, setOptions] = useState(location.state?.options || {});
+  const [min, setMin] = useState(undefined);
+  const [max, setMax] = useState(undefined);
+
+  const { data, loading, error, reFetch } = useFetch(
+    `/hotels?city=${destination}&min=${min || 0}&max=${max || 99999}`
+  );
+
+  const handleClick = () => {
+    reFetch();
+  };
+
+  // Log the response from the useFetch hook
+  useEffect(() => {
+    console.log("Loading:", loading);
+    console.log("Error:", error);
+    console.log("Data:", data);
+  }, [data, loading, error]);
 
   return (
     <div>
@@ -26,90 +49,100 @@ function List() {
             <h1 className="lsTitle">Search</h1>
             <div className="lsItem">
               <label>Destination</label>
-              <input placeholder={destination} type="text"></input>
+              <input
+                type="text"
+                value={destination}
+                onChange={(e) => setDestination(e.target.value)}
+                placeholder="Enter city"
+              />
             </div>
             <div className="lsItem">
-              <label>Check-in Date</label>
+              <label>Check-in Date </label>
               <span onClick={() => setOpenDate(!openDate)}>{`${format(
-                date[0].startDate,
+                dates[0].startDate,
                 "MM/dd/yyyy"
-              )} to ${format(date[0].endDate, "MM/dd/yyyy")}`}</span>
+              )} to ${format(dates[0].endDate, "MM/dd/yyyy")}`}</span>
               {openDate && (
                 <DateRange
-                  onChange={(item) => setDate([item.selecion])}
+                  onChange={(item) => setDates([item.selection])}
                   minDate={new Date()}
-                  ranges={date}
+                  ranges={dates}
                 />
               )}
             </div>
             <div className="lsItem">
               <label>Options</label>
               <div className="lsOptions">
-                <div className="lsOpetionItem">
+                <div className="lsOptionItem">
                   <span className="lsOptionText">
                     Min price <small>per night</small>
                   </span>
-                  <input type="number" className="lsOptionInput"></input>
+                  <input
+                    type="number"
+                    onChange={(e) => setMin(e.target.value)}
+                    className="lsOptionInput"
+                  />
                 </div>
-                <div className="lsOpetionItem">
+                <div className="lsOptionItem">
                   <span className="lsOptionText">
                     Max price <small>per night</small>
                   </span>
-                  <input type="number" className="lsOptionInput"></input>
+                  <input
+                    type="number"
+                    onChange={(e) => setMax(e.target.value)}
+                    className="lsOptionInput"
+                  />
                 </div>
-                <div className="lsOpetionItem">
-                  <span className="lsOptionText">
-                    Adult <small>per night</small>
-                  </span>
+                <div className="lsOptionItem">
+                  <span className="lsOptionText">Adult</span>
                   <input
                     type="number"
                     min={1}
                     className="lsOptionInput"
                     placeholder={options.adult}
-                  ></input>
+                  />
                 </div>
-                <div className="lsOpetionItem">
-                  <span className="lsOptionText">
-                    Children <small>per night</small>
-                  </span>
+                <div className="lsOptionItem">
+                  <span className="lsOptionText">Children</span>
                   <input
                     type="number"
                     min={0}
                     className="lsOptionInput"
                     placeholder={options.children}
-                  ></input>
+                  />
                 </div>
-                <div className="lsOpetionItem">
-                  <span className="lsOptionText">
-                    Room <small>per night</small>
-                  </span>
+                <div className="lsOptionItem">
+                  <span className="lsOptionText">Room</span>
                   <input
                     type="number"
                     min={1}
                     className="lsOptionInput"
                     placeholder={options.room}
-                  ></input>
+                  />
                 </div>
               </div>
             </div>
-            <button>Search</button>
+            <button onClick={handleClick}>Search</button>
           </div>
           <div className="listResult">
-            <SearchItem />
-            <SearchItem />
-            <SearchItem />
-            <SearchItem />
-            <SearchItem />
-            <SearchItem />
-            <SearchItem />
-            <SearchItem />
-            <SearchItem />
-            <SearchItem />
+            {loading ? (
+              "Loading..."
+            ) : error ? (
+              <div>Error loading hotels</div>
+            ) : data.length === 0 ? (
+              <div>No hotels found</div>
+            ) : (
+              <>
+                {data.map((item) => (
+                  <SearchItem item={item} key={item.id} />
+                ))}
+              </>
+            )}
           </div>
         </div>
       </div>
     </div>
   );
-}
+};
 
 export default List;
