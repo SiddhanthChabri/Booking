@@ -13,18 +13,26 @@ dotenv.config();
 
 const app = express();
 
-app.get("/", (req, res) => {
-  res.send("Hello");
-});
-
 // Middlewares
 app.use(cookieParser());
 app.use(express.json());
-app.use(cors());
+
+// CORS configuration to allow frontend (React) to access the backend
+app.use(cors({
+  origin: 'http://localhost:5173', // Frontend URL in development
+  credentials: true               // Allow credentials (cookies, authorization headers)
+}));
+
+// Routes
 app.use("/api/auth", authRoute);
 app.use("/api/users", usersRoute);
 app.use("/api/hotels", hotelsRoute);
 app.use("/api/rooms", roomsRoute);
+
+// Test route
+app.get("/", (req, res) => {
+  res.send("Hello from the backend!");
+});
 
 // Error handling middleware
 app.use((err, req, res, next) => {
@@ -38,13 +46,15 @@ app.use((err, req, res, next) => {
   });
 });
 
+// Connect to database and start server
 const PORT = process.env.PORT || 8000;
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
-  
+
   // Test Prisma connection
   prisma.$connect()
     .then(() => console.log("Prisma connected to the database"))
     .catch(err => console.error("Prisma connection error:", err));
 });
+

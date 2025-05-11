@@ -157,3 +157,33 @@ export const countByType = async (req, res, next) => {
     next(error);
   }
 };
+
+export const getHotelsRooms = async (req, res, next) => {
+  try {
+    const hotel = await prisma.hotels.findUnique({
+      where: {
+        id: parseInt(req.params.id),
+      },
+      include: {
+        rooms: true,
+      },
+    });
+
+    if (!hotel) {
+      return res.status(404).json({ message: "Hotel not found" });
+    }
+
+    // Fetch rooms using Promise.all
+    const rooms = await Promise.all(hotel.rooms.map(async (room) => {
+      return await prisma.rooms.findUnique({
+        where: {
+          id: room.id,
+        },
+      });
+    }));
+
+    res.status(200).json(rooms);
+  } catch (error) {
+    next(error);
+  }
+};

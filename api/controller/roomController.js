@@ -1,20 +1,34 @@
 import prisma from "../postgres/postgres.js";
 
+
+
 export const createRoom = async (req, res, next) => {
   try {
-    // Handle roomNumbers JSON parsing if needed
-    let data = req.body;
-    if (typeof data.roomNumbers === 'object') {
-      data.roomNumbers = JSON.stringify(data.roomNumbers);
+    const { title, price, maxPeople, desc, hotelId } = req.body;
+
+    // Ensure hotelId is provided and exists
+    if (!hotelId) {
+      return res.status(400).json({ error: "hotelId is required" });
     }
-    
+
+    // Create a new room and associate it with the existing hotel by hotelId
     const newRoom = await prisma.rooms.create({
-      data: data,
+      data: {
+        title,
+        price,
+        maxPeople,
+        desc,
+        hotel: {
+          connect: {
+            id: hotelId,  // Connect the room to the hotel by its ID
+          },
+        },
+      },
     });
-    
-    res.status(201).json(newRoom); // Use 201 for resource creation
+
+    res.status(201).json(newRoom); // Return the newly created room
   } catch (error) {
-    next(error);
+    next(error); // Pass the error to the error handler middleware
   }
 };
 
