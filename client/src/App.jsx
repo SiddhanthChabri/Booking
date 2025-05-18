@@ -1,6 +1,6 @@
 import { useContext } from "react";
-import { Route, Routes, BrowserRouter, Navigate } from "react-router-dom";
-import { AuthContext } from "./context/AuthContext";  // Import AuthContext
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import { AuthContext } from "./context/AuthContext";
 
 import "./App.css";
 import Home from "./pages/home/Home";
@@ -9,23 +9,23 @@ import Hotel from "./pages/hotel/Hotel";
 import Login from "./pages/login/login";
 
 function App() {
-  const { user } = useContext(AuthContext);  // Access user from AuthContext
+  const { user } = useContext(AuthContext);
 
   return (
-    <BrowserRouter>
+    <Router>
       <Routes>
         <Route path="/" element={<Home />} />
         <Route 
           path="/hotels" 
-          element={user ? <List /> : <Navigate to="/login" />}  // Redirect to login if not authenticated
+          element={user ? <List /> : <Navigate to="/login" />} 
         />
         <Route 
           path="/hotels/:id" 
-          element={user ? <Hotel /> : <Navigate to="/login" />} // Redirect to login if not authenticated
+          element={user ? <Hotel /> : <Navigate to="/login" />} 
         />
         <Route path="/login" element={<Login />} />
       </Routes>
-    </BrowserRouter>
+    </Router>
   );
 }
 
