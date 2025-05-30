@@ -87,7 +87,6 @@ Below are screenshots showcasing the application’s key features:
 
 
 
-Note: Screenshots are placeholders. To replicate, run the application locally and capture screenshots using a tool like Snipping Tool, then add them to the screenshots/ folder in the repository.
 Learning Outcomes
 This project strengthened my skills in:
 
